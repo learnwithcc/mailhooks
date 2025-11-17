@@ -24,9 +24,9 @@ RUN chmod +x entrypoint.sh
 # Expose SMTP port
 EXPOSE 25
 
-# Health check
+# Health check - verify SMTP port is listening
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD nc -zv localhost 25 || exit 1
+  CMD netstat -tuln | grep -q :25 || exit 1
 
 # Run migrations and start service
 ENTRYPOINT ["./entrypoint.sh"]
