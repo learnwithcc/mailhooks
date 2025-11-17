@@ -237,112 +237,125 @@ function getAppHtml(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mail Hooks Management</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Mail Hooks</title>
   <style>
-    body { background-color: #0f172a; color: #e2e8f0; }
-    .hidden { display: none !important; }
-    .nav-tab { padding: 0.5rem 1rem; border-bottom: 2px solid transparent; cursor: pointer; }
-    .nav-tab:hover { border-bottom-color: #334155; }
-    .nav-tab.active { border-bottom-color: #3b82f6; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: white; color: #000; line-height: 1.6; }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .hidden { display: none; }
+    h1 { font-size: 1.5em; font-weight: 600; margin: 1em 0 0.5em 0; }
+    h2 { font-size: 1.2em; font-weight: 600; margin: 1em 0 0.5em 0; }
+    input, select, textarea { font: inherit; }
+    input, select { border: 1px solid #ccc; padding: 0.4em 0.6em; }
+    input:focus, select:focus { outline: none; border-color: #0066cc; }
+    button { background: none; border: 1px solid #ccc; padding: 0.4em 0.8em; cursor: pointer; }
+    button:hover { background: #f0f0f0; }
+    .container { max-width: 900px; margin: 0 auto; padding: 2em; }
+    form { margin: 1em 0; }
+    .form-row { display: flex; gap: 1em; margin: 0.5em 0; flex-wrap: wrap; }
+    .form-field { flex: 1; min-width: 150px; }
+    label { display: block; font-weight: 600; margin-bottom: 0.2em; }
+    .item { border: 1px solid #ccc; padding: 0.8em; margin: 0.5em 0; }
+    .item-row { display: flex; justify-content: space-between; align-items: center; }
+    .item-actions { display: flex; gap: 0.5em; }
+    .error { color: #cc0000; margin: 0.5em 0; }
+    .nav { border-bottom: 1px solid #ccc; margin-bottom: 1em; }
+    .nav-link { display: inline-block; padding: 0.8em 1em; border: none; background: none; cursor: pointer; font-size: 1em; }
+    .nav-link.active { border-bottom: 2px solid #0066cc; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
   </style>
 </head>
 <body>
   <!-- Login View -->
-  <div id="loginView" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem;">
-    <div style="width: 100%; max-width: 28rem;">
-      <div style="background-color: #1e293b; border-radius: 0.5rem; padding: 2rem; border: 1px solid #334155;">
-        <h1 style="font-size: 1.875rem; font-weight: bold; margin-bottom: 0.5rem;">Mail Hooks</h1>
-        <p style="color: #94a3b8; margin-bottom: 2rem;">Email Forwarding Management</p>
+  <div id="loginView" class="container" style="max-width: 400px; margin: 5em auto;">
+    <h1>Mail Hooks</h1>
+    <p style="color: #666; margin: 1em 0;">Enter your API key to access the management interface</p>
 
-        <form onsubmit="handleLogin(event)" style="display: flex; flex-direction: column; gap: 1rem;">
-          <div>
-            <label for="apiKey" style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">API Key</label>
-            <input
-              type="password"
-              id="apiKey"
-              placeholder="Enter your API key"
-              required
-              style="width: 100%; background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0;"
-            />
-          </div>
-
-          <div id="errorMessage" class="hidden" style="background-color: #7c2d12; border: 1px solid #b45309; color: #fca5a5; padding: 0.75rem; border-radius: 0.25rem; font-size: 0.875rem;"></div>
-
-          <button
-            type="submit"
-            style="width: 100%; background-color: #2563eb; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; font-weight: 500; cursor: pointer; border: none;"
-          >
-            Login
-          </button>
-        </form>
-
-        <p style="color: #94a3b8; font-size: 0.75rem; text-align: center; margin-top: 1.5rem;">
-          Enter your API key to access the Mail Hooks management interface
-        </p>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-field">
+        <label for="apiKey">API Key</label>
+        <input type="password" id="apiKey" required style="width: 100%;">
       </div>
-    </div>
+
+      <div id="errorMessage" class="hidden error"></div>
+
+      <button type="submit" style="width: 100%; margin-top: 1em;">login</button>
+    </form>
   </div>
 
   <!-- Dashboard View -->
-  <div id="dashboardView" class="hidden" style="padding: 1.5rem;">
-    <div style="max-width: 80rem; margin: 0 auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1 style="font-size: 1.875rem; font-weight: bold;">Mail Hooks Management</h1>
-        <button onclick="logout()" style="background-color: #475569; color: white; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; border: none;">Logout</button>
+  <div id="dashboardView" class="hidden">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2em; border-bottom: 1px solid #ccc; padding-bottom: 1em;">
+        <h1 style="margin: 0;">Mail Hooks Management</h1>
+        <button onclick="logout()">logout</button>
       </div>
 
       <!-- Navigation Tabs -->
-      <div style="display: flex; gap: 1rem; border-bottom: 1px solid #334155; margin-bottom: 1.5rem;">
-        <div class="nav-tab active" onclick="switchTab('emails')" style="cursor: pointer;">Email Addresses</div>
-        <div class="nav-tab" onclick="switchTab('webhooks')" style="cursor: pointer;">Webhook Destinations</div>
-        <div class="nav-tab" onclick="switchTab('rules')" style="cursor: pointer;">Routing Rules</div>
+      <div class="nav">
+        <button class="nav-link active" onclick="switchTab('emails')">Email Addresses</button>
+        <button class="nav-link" onclick="switchTab('webhooks')">Webhook Destinations</button>
+        <button class="nav-link" onclick="switchTab('rules')">Routing Rules</button>
       </div>
 
       <!-- Email Addresses Tab -->
       <div id="emails" class="tab-content active">
-        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Email Addresses</h2>
-        <form onsubmit="addEmailAddress(event)" style="background-color: #1e293b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
-            <input type="email" id="emailInput" placeholder="email@example.com" required style="background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0;">
-            <input type="text" id="descriptionInput" placeholder="Description (optional)" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0;">
-            <button type="submit" style="background-color: #2563eb; color: white; border-radius: 0.25rem; cursor: pointer; border: none;">Add Email</button>
+        <h2>Email Addresses</h2>
+        <form onsubmit="addEmailAddress(event)">
+          <div class="form-row">
+            <div class="form-field">
+              <input type="email" id="emailInput" placeholder="email@example.com" required>
+            </div>
+            <div class="form-field">
+              <input type="text" id="descriptionInput" placeholder="description (optional)">
+            </div>
+            <button type="submit">add</button>
           </div>
         </form>
-        <div id="emailsList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+        <div id="emailsList"></div>
       </div>
 
       <!-- Webhooks Tab -->
       <div id="webhooks" class="tab-content">
-        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Webhook Destinations</h2>
-        <form onsubmit="addWebhook(event)" style="background-color: #1e293b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem;">
-            <input type="url" id="webhookUrlInput" placeholder="https://example.com/webhook" required style="background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0; grid-column: span 2;">
-            <select id="methodInput" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0;">
-              <option>POST</option>
-              <option>PUT</option>
-              <option>PATCH</option>
-            </select>
-            <button type="submit" style="background-color: #2563eb; color: white; border-radius: 0.25rem; cursor: pointer; border: none;">Add Webhook</button>
+        <h2>Webhook Destinations</h2>
+        <form onsubmit="addWebhook(event)">
+          <div class="form-row">
+            <div class="form-field" style="flex: 2;">
+              <input type="url" id="webhookUrlInput" placeholder="https://example.com/webhook" required style="width: 100%;">
+            </div>
+            <div class="form-field">
+              <select id="methodInput">
+                <option>POST</option>
+                <option>PUT</option>
+                <option>PATCH</option>
+              </select>
+            </div>
+            <button type="submit">add</button>
           </div>
         </form>
-        <div id="webhooksList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+        <div id="webhooksList"></div>
       </div>
 
       <!-- Routing Rules Tab -->
       <div id="rules" class="tab-content">
-        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Routing Rules</h2>
-        <form onsubmit="addRoutingRule(event)" style="background-color: #1e293b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem;">
-            <input type="text" id="ruleNameInput" placeholder="Rule name" required style="background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0;">
-            <select id="emailSelectInput" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0;"></select>
-            <select id="webhookSelectInput" style="background-color: #0f172a; border: 1px solid #334155; border-radius: 0.25rem; padding: 0.5rem 0.75rem; color: #e2e8f0;"></select>
-            <button type="submit" style="background-color: #2563eb; color: white; border-radius: 0.25rem; cursor: pointer; border: none;">Create Rule</button>
+        <h2>Routing Rules</h2>
+        <form onsubmit="addRoutingRule(event)">
+          <div class="form-row">
+            <div class="form-field">
+              <input type="text" id="ruleNameInput" placeholder="rule name" required>
+            </div>
+            <div class="form-field">
+              <select id="emailSelectInput"></select>
+            </div>
+            <div class="form-field">
+              <select id="webhookSelectInput"></select>
+            </div>
+            <button type="submit">add</button>
           </div>
         </form>
-        <div id="rulesList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+        <div id="rulesList"></div>
       </div>
     </div>
   </div>
@@ -361,18 +374,13 @@ function getAppHtml(): string {
       if (token) {
         document.getElementById('loginView').classList.add('hidden');
         document.getElementById('dashboardView').classList.remove('hidden');
-        loadEmailAddresses();
-        loadWebhooks();
-        loadRoutingRules();
+        loadData();
       }
     }
 
     async function handleLogin(e) {
       e.preventDefault();
       const apiKey = document.getElementById('apiKey').value;
-      const errorDiv = document.getElementById('errorMessage');
-      errorDiv.classList.add('hidden');
-
       try {
         const response = await fetch('/api/login', {
           method: 'POST',
@@ -380,52 +388,68 @@ function getAppHtml(): string {
           body: JSON.stringify({ apiKey })
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.setItem('sessionToken', data.token);
-          document.getElementById('loginView').classList.add('hidden');
-          document.getElementById('dashboardView').classList.remove('hidden');
-          loadEmailAddresses();
-          loadWebhooks();
-          loadRoutingRules();
-        } else {
-          errorDiv.textContent = 'Invalid API key. Please try again.';
-          errorDiv.classList.remove('hidden');
+        if (!response.ok) {
+          const error = await response.json();
+          document.getElementById('errorMessage').textContent = error.error || 'Login failed';
+          document.getElementById('errorMessage').classList.remove('hidden');
+          return;
         }
+
+        const data = await response.json();
+        localStorage.setItem('sessionToken', data.token);
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('dashboardView').classList.remove('hidden');
+        loadData();
       } catch (error) {
-        errorDiv.textContent = 'An error occurred. Please try again.';
-        errorDiv.classList.remove('hidden');
+        console.error('Login error:', error);
+        document.getElementById('errorMessage').textContent = 'Network error';
+        document.getElementById('errorMessage').classList.remove('hidden');
       }
     }
 
-    async function logout() {
-      try {
-        await fetch('/api/logout', { method: 'POST', headers: getAuthHeaders() });
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
+    function logout() {
       localStorage.removeItem('sessionToken');
-      document.getElementById('dashboardView').classList.add('hidden');
       document.getElementById('loginView').classList.remove('hidden');
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('apiKey').value = '';
+      document.getElementById('errorMessage').classList.add('hidden');
     }
 
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-      document.getElementById(tabName).classList.add('active');
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
       event.target.classList.add('active');
+    }
+
+    async function loadData() {
+      await loadEmailAddresses();
+      await loadWebhooks();
+      await loadRoutingRules();
     }
 
     async function loadEmailAddresses() {
       try {
         const response = await fetch('/api/email-addresses', { headers: getAuthHeaders() });
         const emails = await response.json();
-        document.getElementById('emailsList').innerHTML = emails.map(email =>
-          \`<div style="display: flex; justify-content: space-between; align-items: center; background-color: #1e293b; padding: 0.75rem; border-radius: 0.25rem;">
-            <div><div style="font-weight: 500;">\${email.email}</div><div style="font-size: 0.875rem; color: #94a3b8;">\${email.description || '(no description)'}</div></div>
-            <button onclick="deleteEmailAddress(\${email.id})" style="background-color: #b91c1c; color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; cursor: pointer; border: none;">Delete</button>
-          </div>\`
-        ).join('');
+        const list = document.getElementById('emailsList');
+        list.innerHTML = '';
+        emails.forEach(email => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.innerHTML = \`
+            <div class="item-row">
+              <div>
+                <strong>\${email.email}</strong><br>
+                <small style="color: #666;">\${email.description || 'No description'}</small>
+              </div>
+              <div class="item-actions">
+                <button onclick="deleteEmail('\${email.id}')">delete</button>
+              </div>
+            </div>
+          \`;
+          list.appendChild(item);
+        });
       } catch (error) {
         console.error('Error loading emails:', error);
       }
@@ -436,23 +460,28 @@ function getAppHtml(): string {
       const email = document.getElementById('emailInput').value;
       const description = document.getElementById('descriptionInput').value;
       try {
-        await fetch('/api/email-addresses', {
+        const response = await fetch('/api/email-addresses', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ email, description })
         });
-        document.getElementById('emailInput').value = '';
-        document.getElementById('descriptionInput').value = '';
-        loadEmailAddresses();
+        if (response.ok) {
+          document.getElementById('emailInput').value = '';
+          document.getElementById('descriptionInput').value = '';
+          await loadEmailAddresses();
+        }
       } catch (error) {
         console.error('Error adding email:', error);
       }
     }
 
-    async function deleteEmailAddress(id) {
+    async function deleteEmail(id) {
       try {
-        await fetch(\`/api/email-addresses/\${id}\`, { method: 'DELETE', headers: getAuthHeaders() });
-        loadEmailAddresses();
+        await fetch(\`/api/email-addresses/\${id}\`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        await loadEmailAddresses();
       } catch (error) {
         console.error('Error deleting email:', error);
       }
@@ -462,12 +491,34 @@ function getAppHtml(): string {
       try {
         const response = await fetch('/api/webhooks', { headers: getAuthHeaders() });
         const webhooks = await response.json();
-        document.getElementById('webhooksList').innerHTML = webhooks.map(webhook =>
-          \`<div style="display: flex; justify-content: space-between; align-items: center; background-color: #1e293b; padding: 0.75rem; border-radius: 0.25rem;">
-            <div><div style="font-weight: 500;">\${webhook.url}</div><div style="font-size: 0.875rem; color: #94a3b8;">\${webhook.method}</div></div>
-            <button onclick="deleteWebhook(\${webhook.id})" style="background-color: #b91c1c; color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; cursor: pointer; border: none;">Delete</button>
-          </div>\`
-        ).join('');
+        const list = document.getElementById('webhooksList');
+        list.innerHTML = '';
+        webhooks.forEach(webhook => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.innerHTML = \`
+            <div class="item-row">
+              <div>
+                <strong>\${webhook.url}</strong><br>
+                <small style="color: #666;">Method: \${webhook.method}</small>
+              </div>
+              <div class="item-actions">
+                <button onclick="deleteWebhook('\${webhook.id}')">delete</button>
+              </div>
+            </div>
+          \`;
+          list.appendChild(item);
+        });
+
+        // Update webhook select in rules
+        const select = document.getElementById('webhookSelectInput');
+        select.innerHTML = '';
+        webhooks.forEach(webhook => {
+          const option = document.createElement('option');
+          option.value = webhook.id;
+          option.textContent = webhook.url;
+          select.appendChild(option);
+        });
       } catch (error) {
         console.error('Error loading webhooks:', error);
       }
@@ -478,13 +529,15 @@ function getAppHtml(): string {
       const url = document.getElementById('webhookUrlInput').value;
       const method = document.getElementById('methodInput').value;
       try {
-        await fetch('/api/webhooks', {
+        const response = await fetch('/api/webhooks', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({ url, method })
         });
-        document.getElementById('webhookUrlInput').value = '';
-        loadWebhooks();
+        if (response.ok) {
+          document.getElementById('webhookUrlInput').value = '';
+          await loadWebhooks();
+        }
       } catch (error) {
         console.error('Error adding webhook:', error);
       }
@@ -492,8 +545,11 @@ function getAppHtml(): string {
 
     async function deleteWebhook(id) {
       try {
-        await fetch(\`/api/webhooks/\${id}\`, { method: 'DELETE', headers: getAuthHeaders() });
-        loadWebhooks();
+        await fetch(\`/api/webhooks/\${id}\`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        await loadWebhooks();
       } catch (error) {
         console.error('Error deleting webhook:', error);
       }
@@ -501,14 +557,39 @@ function getAppHtml(): string {
 
     async function loadRoutingRules() {
       try {
+        // Load emails for select
+        const emailsResponse = await fetch('/api/email-addresses', { headers: getAuthHeaders() });
+        const emails = await emailsResponse.json();
+        const emailSelect = document.getElementById('emailSelectInput');
+        emailSelect.innerHTML = '';
+        emails.forEach(email => {
+          const option = document.createElement('option');
+          option.value = email.id;
+          option.textContent = email.email;
+          emailSelect.appendChild(option);
+        });
+
+        // Load rules list
         const response = await fetch('/api/routing-rules', { headers: getAuthHeaders() });
         const rules = await response.json();
-        document.getElementById('rulesList').innerHTML = rules.map(rule =>
-          \`<div style="display: flex; justify-content: space-between; align-items: center; background-color: #1e293b; padding: 0.75rem; border-radius: 0.25rem;">
-            <div><div style="font-weight: 500;">\${rule.name}</div><div style="font-size: 0.875rem; color: #94a3b8;">\${rule.email_id} → \${rule.webhook_id}</div></div>
-            <button onclick="deleteRoutingRule(\${rule.id})" style="background-color: #b91c1c; color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; cursor: pointer; border: none;">Delete</button>
-          </div>\`
-        ).join('');
+        const list = document.getElementById('rulesList');
+        list.innerHTML = '';
+        rules.forEach(rule => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.innerHTML = \`
+            <div class="item-row">
+              <div>
+                <strong>\${rule.name}</strong><br>
+                <small style="color: #666;">Email: \${rule.email_address} → Webhook: \${rule.webhook_url}</small>
+              </div>
+              <div class="item-actions">
+                <button onclick="deleteRule('\${rule.id}')">delete</button>
+              </div>
+            </div>
+          \`;
+          list.appendChild(item);
+        });
       } catch (error) {
         console.error('Error loading rules:', error);
       }
@@ -517,25 +598,30 @@ function getAppHtml(): string {
     async function addRoutingRule(e) {
       e.preventDefault();
       const name = document.getElementById('ruleNameInput').value;
-      const email_id = document.getElementById('emailSelectInput').value;
-      const webhook_id = document.getElementById('webhookSelectInput').value;
+      const emailId = document.getElementById('emailSelectInput').value;
+      const webhookId = document.getElementById('webhookSelectInput').value;
       try {
-        await fetch('/api/routing-rules', {
+        const response = await fetch('/api/routing-rules', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ name, email_id, webhook_id })
+          body: JSON.stringify({ name, emailId, webhookId })
         });
-        document.getElementById('ruleNameInput').value = '';
-        loadRoutingRules();
+        if (response.ok) {
+          document.getElementById('ruleNameInput').value = '';
+          await loadRoutingRules();
+        }
       } catch (error) {
         console.error('Error adding rule:', error);
       }
     }
 
-    async function deleteRoutingRule(id) {
+    async function deleteRule(id) {
       try {
-        await fetch(\`/api/routing-rules/\${id}\`, { method: 'DELETE', headers: getAuthHeaders() });
-        loadRoutingRules();
+        await fetch(\`/api/routing-rules/\${id}\`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
+        });
+        await loadRoutingRules();
       } catch (error) {
         console.error('Error deleting rule:', error);
       }
