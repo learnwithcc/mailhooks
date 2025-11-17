@@ -21,21 +21,42 @@ class DatabaseRouter {
 
   async loadRoutingRules() {
     try {
+      // First, check what email addresses exist and their statuses
+      const emailsDebug = await this.pool.query(`
+        SELECT id, email, status FROM email_addresses;
+      `);
+      logger.info(`Email addresses in database:`, {
+        count: emailsDebug.rows.length,
+        emails: emailsDebug.rows
+      });
+
+      // Then check routing rules
+      const rulesDebug = await this.pool.query(`
+        SELECT * FROM routing_rules;
+      `);
+      logger.info(`Routing rules in database:`, {
+        count: rulesDebug.rows.length,
+        rules: rulesDebug.rows
+      });
+
+      // Now run the actual query (without status filter for now)
       const query = `
         SELECT
           rr.id,
           rr.name,
           ea.email,
+          ea.status,
           w.url
         FROM routing_rules rr
         JOIN email_addresses ea ON rr.email_id = ea.id
         JOIN webhooks w ON rr.webhook_id = w.id
-        WHERE ea.status = 'active'
         ORDER BY rr.id ASC
       `;
 
       const result = await this.pool.query(query);
-      logger.info(`Loaded ${result.rows.length} routing rules from database`);
+      logger.info(`Loaded ${result.rows.length} routing rules from database`, {
+        rules: result.rows
+      });
 
       // Convert database rows to WebhookRouter rule format
       const rules = result.rows.map((row) => ({
