@@ -287,7 +287,7 @@ function getAppHtml(): string {
     <form onsubmit="handleLogin(event)">
       <div class="form-field">
         <label for="apiKey">API Key</label>
-        <input type="password" id="apiKey" required style="width: 100%;">
+        <input type="password" id="apiKey" autocomplete="new-password" required style="width: 100%;">
       </div>
 
       <div id="errorMessage" class="hidden error"></div>
@@ -442,6 +442,12 @@ function getAppHtml(): string {
     async function loadEmailAddresses() {
       try {
         const response = await fetch('/api/email-addresses', { headers: getAuthHeaders() });
+        if (!response.ok) {
+          console.error('Failed to load emails:', response.status);
+          const list = document.getElementById('emailsList');
+          list.innerHTML = '<div class="error">Failed to load emails. Please log in again.</div>';
+          return;
+        }
         const emails = await response.json();
         const list = document.getElementById('emailsList');
         list.innerHTML = '';
@@ -501,6 +507,12 @@ function getAppHtml(): string {
     async function loadWebhooks() {
       try {
         const response = await fetch('/api/webhooks', { headers: getAuthHeaders() });
+        if (!response.ok) {
+          console.error('Failed to load webhooks:', response.status);
+          const list = document.getElementById('webhooksList');
+          list.innerHTML = '<div class="error">Failed to load webhooks. Please log in again.</div>';
+          return;
+        }
         const webhooks = await response.json();
         const list = document.getElementById('webhooksList');
         list.innerHTML = '';
@@ -570,6 +582,11 @@ function getAppHtml(): string {
       try {
         // Load emails for select
         const emailsResponse = await fetch('/api/email-addresses', { headers: getAuthHeaders() });
+        if (!emailsResponse.ok) {
+          console.error('Failed to load emails for rules:', emailsResponse.status);
+          document.getElementById('rulesList').innerHTML = '<div class="error">Failed to load rules. Please log in again.</div>';
+          return;
+        }
         const emails = await emailsResponse.json();
         const emailSelect = document.getElementById('emailSelectInput');
         emailSelect.innerHTML = '';
@@ -582,6 +599,11 @@ function getAppHtml(): string {
 
         // Load rules list
         const response = await fetch('/api/routing-rules', { headers: getAuthHeaders() });
+        if (!response.ok) {
+          console.error('Failed to load routing rules:', response.status);
+          document.getElementById('rulesList').innerHTML = '<div class="error">Failed to load rules. Please log in again.</div>';
+          return;
+        }
         const rules = await response.json();
         const list = document.getElementById('rulesList');
         list.innerHTML = '';
