@@ -3,10 +3,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Ensure dev dependencies are installed for build stage
+ENV NODE_ENV=development
+
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies
+# Install dependencies (including devDependencies for TypeScript build)
 RUN npm ci
 
 # Copy source code
@@ -21,11 +24,14 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Set production environment
+ENV NODE_ENV=production
+
 # Copy package files
 COPY package.json package-lock.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
