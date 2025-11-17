@@ -1,8 +1,3 @@
--- Drop old tables if they exist (for schema migration)
-DROP TABLE IF EXISTS routing_rules CASCADE;
-DROP TABLE IF EXISTS webhook_destinations CASCADE;
-DROP TABLE IF EXISTS email_addresses CASCADE;
-
 -- Create email_addresses table
 CREATE TABLE IF NOT EXISTS email_addresses (
   id SERIAL PRIMARY KEY,
