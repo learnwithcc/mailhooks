@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "migrate": "node migrations/init.js",
-    "start": "npm run migrate && inbound-email --config config.json",
-    "dev": "LOG_LEVEL=debug inbound-email --config config.json"
+    "start": "npm run migrate && npx inbound-email --config config.json",
+    "dev": "LOG_LEVEL=debug npx inbound-email --config config.json"
   },
   "dependencies": {
     "inbound-email": "github:learnwithcc/inbound-email",
