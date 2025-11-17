@@ -32,25 +32,29 @@ const databaseRouter = new DatabaseRouter(process.env.DATABASE_URL);
 let loadedRules = [];
 let webhookRouter = null;
 
+// Module-level config object - initialized with defaults and updated by reloadRoutingRules()
+let config = {
+  WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://enkhprqr4n2t.x.pipedream.net/',
+  WEBHOOK_RULES: [],
+  PORT: process.env.PORT || 25,
+  MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024,
+  BUCKET_NAME: process.env.S3_BUCKET_NAME,
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  WEBHOOK_CONCURRENCY: process.env.WEBHOOK_CONCURRENCY || 5,
+  LOCAL_STORAGE_PATH: process.env.LOCAL_STORAGE_PATH || './temp-attachments',
+  LOCAL_STORAGE_RETENTION: process.env.LOCAL_STORAGE_RETENTION || 24,
+  S3_RETRY_INTERVAL: process.env.S3_RETRY_INTERVAL || 5,
+};
+
 async function reloadRoutingRules() {
   try {
     loadedRules = await databaseRouter.loadRoutingRules();
     logger.info(`Reloaded ${loadedRules.length} routing rules from database`);
 
-    // Update the global webhook router with fresh rules
-    const config = {
-      WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://enkhprqr4n2t.x.pipedream.net/',
-      WEBHOOK_RULES: loadedRules,
-      PORT: process.env.PORT || 25,
-      MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024,
-      BUCKET_NAME: process.env.S3_BUCKET_NAME,
-      SMTP_SECURE: process.env.SMTP_SECURE === 'true',
-      WEBHOOK_CONCURRENCY: process.env.WEBHOOK_CONCURRENCY || 5,
-      LOCAL_STORAGE_PATH: process.env.LOCAL_STORAGE_PATH || './temp-attachments',
-      LOCAL_STORAGE_RETENTION: process.env.LOCAL_STORAGE_RETENTION || 24,
-      S3_RETRY_INTERVAL: process.env.S3_RETRY_INTERVAL || 5,
-    };
+    // Update the module-level config object with fresh rules
+    config.WEBHOOK_RULES = loadedRules;
 
+    // Update the global webhook router with fresh rules
     webhookRouter = new WebhookRouter(config);
     return true;
   } catch (error) {
