@@ -30,32 +30,45 @@ const logger = winston.createLogger({
 // Load database routing rules
 const databaseRouter = new DatabaseRouter(process.env.DATABASE_URL);
 let loadedRules = [];
+let webhookRouter = null;
 
-try {
-  loadedRules = await databaseRouter.loadRoutingRules();
-  logger.info(`Successfully loaded ${loadedRules.length} routing rules from database`);
-} catch (error) {
-  logger.error('Failed to load routing rules from database:', error);
-  loadedRules = [];
+async function reloadRoutingRules() {
+  try {
+    loadedRules = await databaseRouter.loadRoutingRules();
+    logger.info(`Reloaded ${loadedRules.length} routing rules from database`);
+
+    // Update the global webhook router with fresh rules
+    const config = {
+      WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://enkhprqr4n2t.x.pipedream.net/',
+      WEBHOOK_RULES: loadedRules,
+      PORT: process.env.PORT || 25,
+      MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024,
+      BUCKET_NAME: process.env.S3_BUCKET_NAME,
+      SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+      WEBHOOK_CONCURRENCY: process.env.WEBHOOK_CONCURRENCY || 5,
+      LOCAL_STORAGE_PATH: process.env.LOCAL_STORAGE_PATH || './temp-attachments',
+      LOCAL_STORAGE_RETENTION: process.env.LOCAL_STORAGE_RETENTION || 24,
+      S3_RETRY_INTERVAL: process.env.S3_RETRY_INTERVAL || 5,
+    };
+
+    webhookRouter = new WebhookRouter(config);
+    return true;
+  } catch (error) {
+    logger.error('Failed to reload routing rules from database:', error);
+    return false;
+  }
 }
 
-// Create config with database rules as WEBHOOK_RULES
-const config = {
-  WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://enkhprqr4n2t.x.pipedream.net/',
-  WEBHOOK_RULES: loadedRules,
-  PORT: process.env.PORT || 25,
-  MAX_FILE_SIZE: process.env.MAX_FILE_SIZE || 5 * 1024 * 1024,
-  BUCKET_NAME: process.env.S3_BUCKET_NAME,
-  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
-  WEBHOOK_CONCURRENCY: process.env.WEBHOOK_CONCURRENCY || 5,
-  LOCAL_STORAGE_PATH: process.env.LOCAL_STORAGE_PATH || './temp-attachments',
-  LOCAL_STORAGE_RETENTION: process.env.LOCAL_STORAGE_RETENTION || 24,
-  S3_RETRY_INTERVAL: process.env.S3_RETRY_INTERVAL || 5,
-};
+// Load rules on startup
+await reloadRoutingRules();
 
-// Initialize WebhookRouter with database rules
-const webhookRouter = new WebhookRouter(config);
-logger.info(`WebhookRouter initialized with ${loadedRules.length} rules from database`);
+// Reload rules every 30 seconds so UI changes are picked up quickly
+setInterval(async () => {
+  const success = await reloadRoutingRules();
+  if (!success) {
+    logger.warn('Failed to reload routing rules in periodic check');
+  }
+}, 30000);
 
 const webhookQueue = new Queue(async function (parsed, cb) {
   const maxRetries = 3;
