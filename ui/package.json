@@ -12,6 +12,7 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
+    "@hono/node-server": "^1.0.0",
     "hono": "^4.6.0",
     "pg": "^8.11.3"
   },

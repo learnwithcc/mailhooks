@@ -705,6 +705,6 @@ const port = parseInt(process.env.UI_PORT || '3000', 10);
 serve({
   fetch: app.fetch,
   port,
-}, (info) => {
+}, (info: { port: number }) => {
   console.log(`Mail Hooks UI running on http://localhost:${info.port}`);
 });
