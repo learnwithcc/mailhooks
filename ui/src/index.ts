@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
+import { setCookie, deleteCookie } from 'hono/cookie';
 import { Pool } from 'pg';
 import { randomBytes } from 'crypto';
 
@@ -65,7 +66,7 @@ app.post('/api/login', async (c) => {
     const session = sessions.get(sessionToken)!;
 
     // Set session token as HTTP-only cookie
-    c.cookie('sessionToken', sessionToken, {
+    setCookie(c, 'sessionToken', sessionToken, {
       path: '/',
       secure: true,
       httpOnly: true,
@@ -87,12 +88,11 @@ app.post('/api/logout', async (c) => {
     sessions.delete(sessionToken);
   }
   // Clear session cookie
-  c.cookie('sessionToken', '', {
+  deleteCookie(c, 'sessionToken', {
     path: '/',
     secure: true,
     httpOnly: true,
     sameSite: 'Strict',
-    maxAge: 0, // Immediately expire
   });
   return c.json({ success: true });
 });
