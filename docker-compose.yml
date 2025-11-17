@@ -14,8 +14,6 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       ATTACHMENT_STORAGE: ${ATTACHMENT_STORAGE:-memory}
       MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
-    volumes:
-      - ./engine/config.json:/app/config.json
     restart: unless-stopped
     networks:
       - mailhooks
