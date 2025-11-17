@@ -49,18 +49,7 @@ function getSessionFromRequest(c: any): string | null {
   return c.req.header('x-session-token') || null;
 }
 
-// Middleware: Session authentication for API routes
-app.use('/api/*', async (c, next) => {
-  const sessionToken = getSessionFromRequest(c);
-
-  if (!sessionToken || !isValidSession(sessionToken)) {
-    return c.json({ error: 'Unauthorized' }, 401);
-  }
-
-  await next();
-});
-
-// Login route
+// Login route (before middleware so it doesn't require auth)
 app.post('/api/login', async (c) => {
   try {
     const { apiKey } = await c.req.json();
@@ -90,6 +79,18 @@ app.post('/api/logout', async (c) => {
     sessions.delete(sessionToken);
   }
   return c.json({ success: true });
+});
+
+// Middleware: Session authentication for protected API routes
+// Applied after login/logout so those routes aren't protected
+app.use('/api/*', async (c, next) => {
+  const sessionToken = getSessionFromRequest(c);
+
+  if (!sessionToken || !isValidSession(sessionToken)) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  await next();
 });
 
 // Serve login page or main UI based on session
