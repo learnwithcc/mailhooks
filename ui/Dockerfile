@@ -27,6 +27,9 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 # Copy package files
 COPY package.json package-lock.json ./
 
