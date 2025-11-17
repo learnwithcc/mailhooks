@@ -14,6 +14,10 @@ RUN npm ci
 # Copy migration files
 COPY migrations ./migrations
 
+# Copy custom server and services
+COPY server.js ./
+COPY services ./services
+
 # Copy configuration and startup script
 COPY config.json ./
 COPY entrypoint.sh ./
