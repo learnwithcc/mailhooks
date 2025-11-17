@@ -185,7 +185,18 @@ app.delete('/api/webhooks/:id', async (c) => {
 app.get('/api/routing-rules', async (c) => {
   try {
     const result = await pool.query(
-      'SELECT id, name, email_id, webhook_id, created_at FROM routing_rules ORDER BY created_at DESC'
+      `SELECT
+        r.id,
+        r.name,
+        r.email_id,
+        r.webhook_id,
+        e.email as email_address,
+        w.url as webhook_url,
+        r.created_at
+      FROM routing_rules r
+      JOIN email_addresses e ON r.email_id = e.id
+      JOIN webhooks w ON r.webhook_id = w.id
+      ORDER BY r.created_at DESC`
     );
     return c.json(result.rows);
   } catch (error) {
@@ -598,13 +609,13 @@ function getAppHtml(): string {
     async function addRoutingRule(e) {
       e.preventDefault();
       const name = document.getElementById('ruleNameInput').value;
-      const emailId = document.getElementById('emailSelectInput').value;
-      const webhookId = document.getElementById('webhookSelectInput').value;
+      const email_id = document.getElementById('emailSelectInput').value;
+      const webhook_id = document.getElementById('webhookSelectInput').value;
       try {
         const response = await fetch('/api/routing-rules', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ name, emailId, webhookId })
+          body: JSON.stringify({ name, email_id, webhook_id })
         });
         if (response.ok) {
           document.getElementById('ruleNameInput').value = '';
