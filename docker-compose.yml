@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  engine:
+    build:
+      context: ./engine
+      dockerfile: Dockerfile
+    container_name: mailhooks-engine
+    ports:
+      - "${SMTP_PORT:-25}:25"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ATTACHMENT_STORAGE: ${ATTACHMENT_STORAGE:-memory}
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-5242880}
+    volumes:
+      - ./engine/config.json:/app/config.json
+    restart: unless-stopped
+    networks:
+      - mailhooks
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: mailhooks-ui
+    ports:
+      - "${UI_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL}
+      API_KEY: ${API_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENGINE_HOST: engine
+      ENGINE_PORT: 25
+    depends_on:
+      - engine
+    restart: unless-stopped
+    networks:
+      - mailhooks
+
+networks:
+  mailhooks:
+    driver: bridge

@@ -1,0 +1,23 @@
+{
+  "name": "mailhooks-engine",
+  "version": "0.1.0",
+  "description": "SMTP webhook engine orchestration for mail hooks",
+  "type": "module",
+  "scripts": {
+    "migrate": "node migrations/init.js",
+    "start": "npm run migrate && inbound-email --config config.json",
+    "dev": "LOG_LEVEL=debug inbound-email --config config.json"
+  },
+  "dependencies": {
+    "inbound-email": "github:learnwithcc/inbound-email",
+    "pg": "^8.11.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/learnwithcc/mailhooks.git"
+  },
+  "license": "MIT"
+}

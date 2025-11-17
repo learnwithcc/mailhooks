@@ -1,0 +1,28 @@
+{
+  "server": {
+    "port": 25,
+    "hostname": "0.0.0.0"
+  },
+  "database": {
+    "connectionString": "${DATABASE_URL}"
+  },
+  "routing": {
+    "enabled": true,
+    "autoReload": true,
+    "reloadInterval": 30000
+  },
+  "webhook": {
+    "timeout": 10000,
+    "retries": 3,
+    "retryDelay": 1000
+  },
+  "storage": {
+    "type": "memory",
+    "attachmentDir": "/tmp/mailhooks-attachments",
+    "maxFileSize": 5242880
+  },
+  "logging": {
+    "level": "${LOG_LEVEL:-info}",
+    "format": "json"
+  }
+}
