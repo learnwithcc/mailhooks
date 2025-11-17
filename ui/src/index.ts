@@ -66,6 +66,11 @@ app.post('/api/login', async (c) => {
     const { apiKey } = await c.req.json();
     const expectedKey = process.env.API_KEY;
 
+    console.log('Login attempt:');
+    console.log('  Received:', JSON.stringify(apiKey));
+    console.log('  Expected:', JSON.stringify(expectedKey));
+    console.log('  Match:', apiKey === expectedKey);
+
     if (apiKey !== expectedKey) {
       return c.json({ error: 'Invalid API key' }, 401);
     }
