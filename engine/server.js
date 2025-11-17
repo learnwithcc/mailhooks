@@ -1,11 +1,13 @@
-import SMTPServer from 'smtp-server';
-import { parseEmail } from './node_modules/inbound-email/services/emailParser.js';
-import { sendToWebhook } from './node_modules/inbound-email/services/webhookService.js';
-import WebhookRouter from './node_modules/inbound-email/services/webhookRouter.js';
+import { createRequire } from 'module';
 import Queue from 'better-queue';
 import winston from 'winston';
 import 'winston-daily-rotate-file';
 import DatabaseRouter from './services/databaseRouter.js';
+
+const require = createRequire(import.meta.url);
+const SMTPServer = require('smtp-server').SMTPServer;
+const { parseEmail } = require('./node_modules/inbound-email/services/emailParser');
+const WebhookRouter = require('./node_modules/inbound-email/services/webhookRouter');
 
 const logger = winston.createLogger({
   level: 'info',
@@ -76,7 +78,7 @@ const webhookQueue = new Queue(async function (parsed, cb) {
         try {
           logger.info(`Sending to webhook: ${match.webhook} (rule: ${match.ruleName})`);
 
-          const axios = (await import('axios')).default;
+          const axios = require('axios');
           const response = await axios.post(match.webhook, {
             ...parsed,
             _webhookMeta: {
@@ -143,7 +145,7 @@ const webhookQueue = new Queue(async function (parsed, cb) {
   attemptWebhook();
 }, { concurrent: config.WEBHOOK_CONCURRENCY || 5 });
 
-const server = new SMTPServer.SMTPServer({
+const server = new SMTPServer({
   onData(stream, session, callback) {
     parseEmail(stream)
       .then(parsed => {
