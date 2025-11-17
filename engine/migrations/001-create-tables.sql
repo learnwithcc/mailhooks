@@ -32,8 +32,8 @@ CREATE TABLE IF NOT EXISTS routing_rules (
 );
 
 -- Create indexes
-CREATE INDEX idx_email_addresses_status ON email_addresses(status);
-CREATE INDEX idx_webhook_destinations_status ON webhook_destinations(status);
-CREATE INDEX idx_routing_rules_status ON routing_rules(status);
-CREATE INDEX idx_routing_rules_email_id ON routing_rules(email_address_id);
-CREATE INDEX idx_routing_rules_webhook_id ON routing_rules(webhook_destination_id);
+CREATE INDEX IF NOT EXISTS idx_email_addresses_status ON email_addresses(status);
+CREATE INDEX IF NOT EXISTS idx_webhook_destinations_status ON webhook_destinations(status);
+CREATE INDEX IF NOT EXISTS idx_routing_rules_status ON routing_rules(status);
+CREATE INDEX IF NOT EXISTS idx_routing_rules_email_id ON routing_rules(email_address_id);
+CREATE INDEX IF NOT EXISTS idx_routing_rules_webhook_id ON routing_rules(webhook_destination_id);
