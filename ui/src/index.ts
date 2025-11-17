@@ -46,10 +46,7 @@ function isValidSession(token: string): boolean {
 }
 
 function getSessionFromRequest(c: any): string | null {
-  // Get session token from cookie (set by login)
-  const cookies = c.req.header('cookie') || '';
-  const match = cookies.match(/sessionToken=([^;]+)/);
-  return match ? match[1] : null;
+  return c.req.header('x-session-token') || null;
 }
 
 // Login route (before middleware so it doesn't require auth)
@@ -58,17 +55,17 @@ app.post('/api/login', async (c) => {
     const { apiKey } = await c.req.json();
     const expectedKey = process.env.API_KEY;
 
+    console.log('Login attempt:');
+    console.log('  Received:', JSON.stringify(apiKey));
+    console.log('  Expected:', JSON.stringify(expectedKey));
+    console.log('  Match:', apiKey === expectedKey);
+
     if (apiKey !== expectedKey) {
       return c.json({ error: 'Invalid API key' }, 401);
     }
 
     const sessionToken = createSession();
-    const session = sessions.get(sessionToken)!;
-
-    // Set session token as HTTP cookie
-    c.res.headers.set('Set-Cookie', `sessionToken=${sessionToken}; Path=/; Max-Age=${SESSION_DURATION / 1000}; HttpOnly; SameSite=Strict`);
-
-    return c.json({ success: true, expiresAt: session.expiresAt });
+    return c.json({ token: sessionToken, expiresAt: sessions.get(sessionToken)!.expiresAt });
   } catch (error) {
     console.error('Login error:', error);
     return c.json({ error: 'Login failed' }, 500);
@@ -81,8 +78,6 @@ app.post('/api/logout', async (c) => {
   if (sessionToken) {
     sessions.delete(sessionToken);
   }
-  // Clear session cookie
-  c.res.headers.set('Set-Cookie', 'sessionToken=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict');
   return c.json({ success: true });
 });
 
@@ -365,12 +360,12 @@ async function getLoginHtml(): Promise<string> {
         const response = await fetch('/api/login', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ apiKey }),
-          credentials: 'same-origin' // Include cookies in request/response
+          body: JSON.stringify({ apiKey })
         });
 
         if (response.ok) {
-          // Cookie is set by server, just redirect
+          const data = await response.json();
+          localStorage.setItem('sessionToken', data.token);
           window.location.href = '/';
         } else {
           errorDiv.textContent = 'Invalid API key. Please try again.';
@@ -471,9 +466,14 @@ async function getIndexHtml(): Promise<string> {
   </div>
 
   <script>
+    function getSessionToken() {
+      return localStorage.getItem('sessionToken');
+    }
+
     function getAuthHeaders() {
-      // Cookies are sent automatically, just need content-type header
+      const token = getSessionToken();
       return {
+        'x-session-token': token || '',
         'content-type': 'application/json'
       };
     }
@@ -482,13 +482,12 @@ async function getIndexHtml(): Promise<string> {
       try {
         await fetch('/api/logout', {
           method: 'POST',
-          headers: getAuthHeaders(),
-          credentials: 'same-origin'
+          headers: getAuthHeaders()
         });
       } catch (error) {
         console.error('Error logging out:', error);
       }
-      // Cookie is cleared by server, just redirect
+      localStorage.removeItem('sessionToken');
       window.location.href = '/';
     }
 
@@ -506,8 +505,7 @@ async function getIndexHtml(): Promise<string> {
     async function loadEmailAddresses() {
       try {
         const response = await fetch('/api/email-addresses', {
-          headers: getAuthHeaders(),
-          credentials: 'same-origin'
+          headers: getAuthHeaders()
         });
         if (response.status === 401) {
           logout();
@@ -538,8 +536,7 @@ async function getIndexHtml(): Promise<string> {
         const response = await fetch('/api/email-addresses', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ email, description }),
-          credentials: 'same-origin'
+          body: JSON.stringify({ email, description })
         });
         if (response.status === 401) {
           logout();
@@ -559,8 +556,7 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch(\`/api/email-addresses/\${id}\`, {
           method: 'DELETE',
-          headers: getAuthHeaders(),
-          credentials: 'same-origin'
+          headers: getAuthHeaders()
         });
         if (response.status === 401) {
           logout();
@@ -575,8 +571,7 @@ async function getIndexHtml(): Promise<string> {
     async function loadWebhooks() {
       try {
         const response = await fetch('/api/webhooks', {
-          headers: getAuthHeaders(),
-          credentials: 'same-origin'
+          headers: getAuthHeaders()
         });
         if (response.status === 401) {
           logout();
@@ -607,8 +602,7 @@ async function getIndexHtml(): Promise<string> {
         const response = await fetch('/api/webhooks', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ url, method }),
-          credentials: 'same-origin'
+          body: JSON.stringify({ url, method })
         });
         if (response.status === 401) {
           logout();
@@ -627,8 +621,7 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch(\`/api/webhooks/\${id}\`, {
           method: 'DELETE',
-          headers: getAuthHeaders(),
-          credentials: 'same-origin'
+          headers: getAuthHeaders()
         });
         if (response.status === 401) {
           logout();
@@ -643,8 +636,7 @@ async function getIndexHtml(): Promise<string> {
     async function loadRoutingRules() {
       try {
         const response = await fetch('/api/routing-rules', {
-          headers: getAuthHeaders(),
-          credentials: 'same-origin'
+          headers: getAuthHeaders()
         });
         if (response.status === 401) {
           logout();
@@ -676,8 +668,7 @@ async function getIndexHtml(): Promise<string> {
         const response = await fetch('/api/routing-rules', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ name, email_address_id, webhook_destination_id }),
-          credentials: 'same-origin'
+          body: JSON.stringify({ name, email_address_id, webhook_destination_id })
         });
         if (response.status === 401) {
           logout();
@@ -696,8 +687,7 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch(\`/api/routing-rules/\${id}\`, {
           method: 'DELETE',
-          headers: getAuthHeaders(),
-          credentials: 'same-origin'
+          headers: getAuthHeaders()
         });
         if (response.status === 401) {
           logout();
