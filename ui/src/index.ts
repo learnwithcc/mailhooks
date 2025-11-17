@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { Pool } from 'pg';
+import { randomBytes } from 'crypto';
 
 const app = new Hono();
 
@@ -9,21 +10,92 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL || '',
 });
 
-// Middleware: API Key authentication
-app.use('/api/*', async (c, next) => {
-  const apiKey = c.req.header('x-api-key');
-  const expectedKey = process.env.API_KEY;
+// Session management
+interface Session {
+  token: string;
+  createdAt: number;
+  expiresAt: number;
+}
 
-  if (apiKey !== expectedKey) {
+const sessions = new Map<string, Session>();
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+function generateSessionToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+function createSession(): string {
+  const token = generateSessionToken();
+  const now = Date.now();
+  sessions.set(token, {
+    token,
+    createdAt: now,
+    expiresAt: now + SESSION_DURATION,
+  });
+  return token;
+}
+
+function isValidSession(token: string): boolean {
+  const session = sessions.get(token);
+  if (!session) return false;
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function getSessionFromRequest(c: any): string | null {
+  return c.req.header('x-session-token') || null;
+}
+
+// Middleware: Session authentication for API routes
+app.use('/api/*', async (c, next) => {
+  const sessionToken = getSessionFromRequest(c);
+
+  if (!sessionToken || !isValidSession(sessionToken)) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
   await next();
 });
 
-// Serve static files (HTML, CSS)
+// Login route
+app.post('/api/login', async (c) => {
+  try {
+    const { apiKey } = await c.req.json();
+    const expectedKey = process.env.API_KEY;
+
+    if (apiKey !== expectedKey) {
+      return c.json({ error: 'Invalid API key' }, 401);
+    }
+
+    const sessionToken = createSession();
+    return c.json({ token: sessionToken, expiresAt: sessions.get(sessionToken)!.expiresAt });
+  } catch (error) {
+    console.error('Login error:', error);
+    return c.json({ error: 'Login failed' }, 500);
+  }
+});
+
+// Logout route
+app.post('/api/logout', async (c) => {
+  const sessionToken = getSessionFromRequest(c);
+  if (sessionToken) {
+    sessions.delete(sessionToken);
+  }
+  return c.json({ success: true });
+});
+
+// Serve login page or main UI based on session
 app.get('/', async (c) => {
-  return c.html(await getIndexHtml());
+  const sessionToken = getSessionFromRequest(c);
+
+  if (sessionToken && isValidSession(sessionToken)) {
+    return c.html(await getIndexHtml());
+  }
+
+  return c.html(await getLoginHtml());
 });
 
 // API Routes: Email Addresses
@@ -223,6 +295,88 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' });
 });
 
+// Get login page HTML
+async function getLoginHtml(): Promise<string> {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mail Hooks Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { @apply bg-slate-950 text-slate-100; }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+  <div class="w-full max-w-md">
+    <div class="bg-slate-900 rounded-lg p-8 border border-slate-700">
+      <h1 class="text-3xl font-bold mb-2">Mail Hooks</h1>
+      <p class="text-slate-400 mb-8">Email Forwarding Management</p>
+
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label for="apiKey" class="block text-sm font-medium mb-2">API Key</label>
+          <input
+            type="password"
+            id="apiKey"
+            placeholder="Enter your API key"
+            required
+            class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div id="errorMessage" class="hidden bg-red-900 border border-red-700 text-red-200 px-3 py-2 rounded text-sm"></div>
+
+        <button
+          type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium"
+        >
+          Login
+        </button>
+      </form>
+
+      <p class="text-slate-400 text-xs text-center mt-6">
+        Enter your API key to access the Mail Hooks management interface
+      </p>
+    </div>
+  </div>
+
+  <script>
+    async function handleLogin(e) {
+      e.preventDefault();
+      const apiKey = document.getElementById('apiKey').value;
+      const errorDiv = document.getElementById('errorMessage');
+
+      errorDiv.classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ apiKey })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.setItem('sessionToken', data.token);
+          window.location.href = '/';
+        } else {
+          errorDiv.textContent = 'Invalid API key. Please try again.';
+          errorDiv.classList.remove('hidden');
+          document.getElementById('apiKey').value = '';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>`;
+}
+
 // Get HTML content
 async function getIndexHtml(): Promise<string> {
   return `<!DOCTYPE html>
@@ -242,7 +396,10 @@ async function getIndexHtml(): Promise<string> {
 </head>
 <body class="p-6">
   <div class="max-w-6xl mx-auto">
-    <h1 class="text-3xl font-bold mb-8">Mail Hooks Management</h1>
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold">Mail Hooks Management</h1>
+      <button onclick="logout()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded">Logout</button>
+    </div>
 
     <!-- Navigation Tabs -->
     <div class="flex gap-4 border-b border-slate-700 mb-6">
@@ -303,7 +460,30 @@ async function getIndexHtml(): Promise<string> {
   </div>
 
   <script>
-    const API_KEY = '${process.env.API_KEY || 'demo-key'}';
+    function getSessionToken() {
+      return localStorage.getItem('sessionToken');
+    }
+
+    function getAuthHeaders() {
+      const token = getSessionToken();
+      return {
+        'x-session-token': token || '',
+        'content-type': 'application/json'
+      };
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/logout', {
+          method: 'POST',
+          headers: getAuthHeaders()
+        });
+      } catch (error) {
+        console.error('Error logging out:', error);
+      }
+      localStorage.removeItem('sessionToken');
+      window.location.href = '/';
+    }
 
     function switchTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -319,8 +499,12 @@ async function getIndexHtml(): Promise<string> {
     async function loadEmailAddresses() {
       try {
         const response = await fetch('/api/email-addresses', {
-          headers: { 'x-api-key': API_KEY }
+          headers: getAuthHeaders()
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         const emails = await response.json();
         const html = emails.map(e => \`
           <div class="bg-slate-900 p-3 rounded flex justify-between items-center">
@@ -345,9 +529,13 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch('/api/email-addresses', {
           method: 'POST',
-          headers: { 'x-api-key': API_KEY, 'content-type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ email, description })
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         if (response.ok) {
           document.getElementById('emailInput').value = '';
           document.getElementById('descriptionInput').value = '';
@@ -362,8 +550,12 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch(\`/api/email-addresses/\${id}\`, {
           method: 'DELETE',
-          headers: { 'x-api-key': API_KEY }
+          headers: getAuthHeaders()
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         if (response.ok) loadEmailAddresses();
       } catch (error) {
         console.error('Error deleting email:', error);
@@ -373,8 +565,12 @@ async function getIndexHtml(): Promise<string> {
     async function loadWebhooks() {
       try {
         const response = await fetch('/api/webhooks', {
-          headers: { 'x-api-key': API_KEY }
+          headers: getAuthHeaders()
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         const webhooks = await response.json();
         const html = webhooks.map(w => \`
           <div class="bg-slate-900 p-3 rounded flex justify-between items-center">
@@ -399,9 +595,13 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch('/api/webhooks', {
           method: 'POST',
-          headers: { 'x-api-key': API_KEY, 'content-type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ url, method })
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         if (response.ok) {
           document.getElementById('webhookUrlInput').value = '';
           loadWebhooks();
@@ -415,8 +615,12 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch(\`/api/webhooks/\${id}\`, {
           method: 'DELETE',
-          headers: { 'x-api-key': API_KEY }
+          headers: getAuthHeaders()
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         if (response.ok) loadWebhooks();
       } catch (error) {
         console.error('Error deleting webhook:', error);
@@ -426,8 +630,12 @@ async function getIndexHtml(): Promise<string> {
     async function loadRoutingRules() {
       try {
         const response = await fetch('/api/routing-rules', {
-          headers: { 'x-api-key': API_KEY }
+          headers: getAuthHeaders()
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         const rules = await response.json();
         const html = rules.map(r => \`
           <div class="bg-slate-900 p-3 rounded flex justify-between items-center">
@@ -453,9 +661,13 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch('/api/routing-rules', {
           method: 'POST',
-          headers: { 'x-api-key': API_KEY, 'content-type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ name, email_address_id, webhook_destination_id })
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         if (response.ok) {
           document.getElementById('ruleNameInput').value = '';
           loadRoutingRules();
@@ -469,8 +681,12 @@ async function getIndexHtml(): Promise<string> {
       try {
         const response = await fetch(\`/api/routing-rules/\${id}\`, {
           method: 'DELETE',
-          headers: { 'x-api-key': API_KEY }
+          headers: getAuthHeaders()
         });
+        if (response.status === 401) {
+          logout();
+          return;
+        }
         if (response.ok) loadRoutingRules();
       } catch (error) {
         console.error('Error deleting rule:', error);
