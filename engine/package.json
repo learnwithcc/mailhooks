@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "migrate": "node migrations/init.js",
-    "start": "npm run migrate && node node_modules/inbound-email/server.js",
-    "dev": "LOG_LEVEL=debug node node_modules/inbound-email/server.js"
+    "start": "npm run migrate && node server.js",
+    "dev": "LOG_LEVEL=debug node server.js"
   },
   "dependencies": {
     "inbound-email": "github:learnwithcc/inbound-email",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "axios": "^1.7.0",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "better-queue": "^3.8.12"
   },
   "engines": {
     "node": ">=18.0.0"
