@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS routing_rules (
   UNIQUE(email_id, webhook_id)
 );
 
--- Create indexes
+-- Create indexes for improved query performance
 CREATE INDEX IF NOT EXISTS idx_email_addresses_status ON email_addresses(status);
 CREATE INDEX IF NOT EXISTS idx_routing_rules_email_id ON routing_rules(email_id);
 CREATE INDEX IF NOT EXISTS idx_routing_rules_webhook_id ON routing_rules(webhook_id);

@@ -1,3 +1,18 @@
+/**
+ * Mail Hooks UI Server
+ *
+ * Provides a web-based management interface for the Mail Hooks email forwarding system.
+ * This server handles:
+ * - Session-based authentication with API key
+ * - CRUD operations for email addresses, webhook destinations, and routing rules
+ * - HTML UI rendering for the management dashboard
+ *
+ * @module mailhooks-ui
+ * @requires hono - Lightweight web framework
+ * @requires pg - PostgreSQL client for database operations
+ * @requires crypto - For secure session token generation
+ */
+
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { Pool } from 'pg';
@@ -5,25 +20,63 @@ import { randomBytes } from 'crypto';
 
 const app = new Hono();
 
-// Database connection pool
+/**
+ * PostgreSQL connection pool for database operations.
+ * Configured using the DATABASE_URL environment variable.
+ *
+ * @constant {Pool}
+ */
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || '',
 });
 
-// Session management
+/**
+ * Represents an active user session.
+ * Sessions are stored in-memory and expire after 24 hours.
+ *
+ * @interface Session
+ * @property {string} token - Unique session identifier (64-character hex string)
+ * @property {number} createdAt - Unix timestamp when session was created
+ * @property {number} expiresAt - Unix timestamp when session expires
+ */
 interface Session {
   token: string;
   createdAt: number;
   expiresAt: number;
 }
 
+/**
+ * In-memory session storage.
+ * Maps session tokens to Session objects.
+ *
+ * @type {Map<string, Session>}
+ */
 const sessions = new Map<string, Session>();
+
+/**
+ * Session validity duration in milliseconds (24 hours).
+ *
+ * @constant {number}
+ */
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
+/**
+ * Generates a cryptographically secure random session token.
+ * Uses 32 random bytes converted to a 64-character hexadecimal string.
+ *
+ * @returns {string} A 64-character hexadecimal session token
+ * @private
+ */
 function generateSessionToken(): string {
   return randomBytes(32).toString('hex');
 }
 
+/**
+ * Creates a new session and stores it in the session map.
+ *
+ * @returns {string} The newly generated session token
+ * @private
+ */
 function createSession(): string {
   const token = generateSessionToken();
   const now = Date.now();
@@ -35,6 +88,14 @@ function createSession(): string {
   return token;
 }
 
+/**
+ * Validates a session token and checks if it has expired.
+ * Automatically removes expired sessions from the session map.
+ *
+ * @param {string} token - The session token to validate
+ * @returns {boolean} True if the session exists and is not expired, false otherwise
+ * @private
+ */
 function isValidSession(token: string): boolean {
   const session = sessions.get(token);
   if (!session) return false;
@@ -45,11 +106,31 @@ function isValidSession(token: string): boolean {
   return true;
 }
 
+/**
+ * Extracts the session token from the request headers.
+ * Looks for the 'x-session-token' header.
+ *
+ * @param {any} c - The Hono context object
+ * @returns {string | null} The session token if present, null otherwise
+ * @private
+ */
 function getSessionFromRequest(c: any): string | null {
   return c.req.header('x-session-token') || null;
 }
 
-// Login route (before middleware so it doesn't require auth)
+/**
+ * POST /api/login - Authenticate user with API key
+ *
+ * Validates the provided API key against the API_KEY environment variable.
+ * On success, creates a new session and returns the session token.
+ *
+ * @route POST /api/login
+ * @body {Object} body - Request body
+ * @body {string} body.apiKey - The API key to authenticate with
+ * @returns {Object} 200 - { token: string, expiresAt: number }
+ * @returns {Object} 401 - { error: "Invalid API key" }
+ * @returns {Object} 500 - { error: "Login failed" }
+ */
 app.post('/api/login', async (c) => {
   try {
     const { apiKey } = await c.req.json();
@@ -67,7 +148,16 @@ app.post('/api/login', async (c) => {
   }
 });
 
-// Logout route
+/**
+ * POST /api/logout - End the current session
+ *
+ * Removes the session token from the session map, effectively logging out the user.
+ * Always returns success, even if the session doesn't exist.
+ *
+ * @route POST /api/logout
+ * @header {string} x-session-token - The session token (required by middleware)
+ * @returns {Object} 200 - { success: true }
+ */
 app.post('/api/logout', async (c) => {
   const sessionToken = getSessionFromRequest(c);
   if (sessionToken) {
@@ -76,8 +166,15 @@ app.post('/api/logout', async (c) => {
   return c.json({ success: true });
 });
 
-// Middleware: Session authentication for protected API routes
-// Applied after login/logout so those routes aren't protected
+/**
+ * Middleware: Session authentication for API routes
+ *
+ * Protects all /api/* routes by validating the session token.
+ * Returns 401 Unauthorized if the token is missing or invalid.
+ * Skips login and logout routes via explicit route definition.
+ *
+ * @middleware
+ */
 app.use('/api/*', async (c, next) => {
   const sessionToken = getSessionFromRequest(c);
 
@@ -88,7 +185,14 @@ app.use('/api/*', async (c, next) => {
   await next();
 });
 
-// Serve single-page app for all routes (app handles routing client-side)
+/**
+ * GET / - Serve the main UI
+ *
+ * Returns the HTML UI for the management dashboard.
+ *
+ * @route GET /
+ * @returns {string} HTML page
+ */
 app.get('/', async (c) => {
   return c.html(getAppHtml());
 });
