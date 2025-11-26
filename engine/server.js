@@ -66,13 +66,15 @@ async function reloadRoutingRules() {
 // Load rules on startup
 await reloadRoutingRules();
 
-// Reload rules every 30 seconds so UI changes are picked up quickly
-setInterval(async () => {
-  const success = await reloadRoutingRules();
-  if (!success) {
-    logger.warn('Failed to reload routing rules in periodic check');
-  }
-}, 30000);
+// DISABLED: Polling every 30 seconds caused excessive Neon compute usage (~$60 overage)
+// Rules are now loaded only on startup and when explicitly reloaded via UI actions
+// If you need real-time rule updates, implement event-driven reloads or webhooks instead
+// setInterval(async () => {
+//   const success = await reloadRoutingRules();
+//   if (!success) {
+//     logger.warn('Failed to reload routing rules in periodic check');
+//   }
+// }, 30000);
 
 const webhookQueue = new Queue(async function (parsed, cb) {
   const maxRetries = 3;

@@ -270,6 +270,49 @@ UI_PORT=3001
 
 ## Deployment
 
+### Deployment Target
+
+**Server**: `vps-1`
+**Deployment Method**: Coolify (Docker Compose via Git repository)
+**SSH Access**: `ssh vps-1`
+**Status**: Ready to deploy (application code complete, awaiting Coolify deployment)
+
+### To Deploy on vps-1
+
+After setting up in Coolify:
+
+```bash
+# SSH into vps-1
+ssh vps-1
+
+# View running services
+docker compose -f docker-compose.prod.yml ps
+
+# View engine logs
+docker compose -f docker-compose.prod.yml logs engine -f
+
+# View UI logs
+docker compose -f docker-compose.prod.yml logs ui -f
+
+# Restart services (after git pull)
+docker compose -f docker-compose.prod.yml up -d
+
+# Check specific service status
+docker compose -f docker-compose.prod.yml ps engine
+docker compose -f docker-compose.prod.yml ps ui
+```
+
+### Coolify Setup Steps
+
+1. Go to Coolify dashboard on vps-1
+2. Create new application with Docker Compose buildpack
+3. Link this Git repository (`learnwithcc/mailhooks`)
+4. Configure environment variables (DATABASE_URL, API_KEY, etc.)
+5. Set Dockerfiles:
+   - **Engine**: `engine/Dockerfile`
+   - **UI**: `ui/Dockerfile`
+6. Deploy
+
 ### Coolify
 
 1. Connect your Git repository
